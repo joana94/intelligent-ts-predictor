@@ -27,13 +27,21 @@ It comprises the following models:
  
 The system is modular and it is executed through the command line. The correct way of using it is as follows:
  
- - First, run the 'create_dirs.py' throgh the command line. It will ask for a name project name and will create directory structure as follows:
-- :file_folder: (/User/Documents/)
-  - :file_folder: (../Intelligent TS Predictor/)
-     - :file_folder: (../"Project Name"/)
-         - :file_folder: (../Analysis)
-         - :file_folder: (../Graphics)
-         - :file_folder: (../Models)
-         - :file_folder: (../Reports)
+- First, run the 'create_dirs.py' throgh the command line. It will ask for a name project name and will create directory structure as follows:
 
+- :file_folder: /User/Documents/
+  - :file_folder: ../Intelligent TS Predictor/
+     - :file_folder: ../"Project Name"/
+         - :file_folder: ../Data
+         - :file_folder: ../Graphics
+         - :file_folder: ../Models
+         - :file_folder: ../Reports
+
+- Second, insert the time series csv for which want to forecast (or fit models and compare) inside the "Project Name"/Data folder. It must have a **datetime** column.
+- Before proceeding, you can check the 'config.py' which is where you can configure the most important parts of the system to suit your dataset.
+- Next you can execute the 'load_analyse_data_module.py' which will automatically load the data, create a time plot, as well as ACF and PACF plots in the "Project Name"/Graphics folder and will split the dataset into a train and test dataset (based on the parameter SPLIT_POINT in the 'config.py' file) and store them in the "Project Name"/Data folder.
+- The next step is to run the 'model_fitting_module.py' which will find the best set of hyperparameters for the model you chose in the 'config.py'.
+- You can use the 'model_fitting_module.py' to find the hyperparameters for all the models available in the system (ARIMA, SARIMA, Traditional RNN, GRU and LSTM) and compare all of them as the system automatically produces reports inside the "Project Name"/Models/"Model Name" folder with the predictive performance of each in the test set based on the followig measures: Mean Square Error (MSE), Root Mean Square Error (RMSE), Mean Absolute Error (MAE) and Median Absolute Error (MedAE). 
+- For faster comparison, you can run the 'model_comparison_module.py' which will produce a bar plot and a report in "Project Name"/Models comparing the performance of all of them.
+- Finally, you can run the 'forecast_module.py' which will give actual forecasts into the future and their respective plots and .csv files that can be used for further analysis.
   

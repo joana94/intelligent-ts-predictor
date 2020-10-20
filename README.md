@@ -50,5 +50,5 @@ This is just a brief overview of how the system works. It has a lot of useful fe
 
 
 ## Future goals
-- Refactore the code.
+- Refactor the code.
 - Add more complex NN models capable of dealing with exogenous features.

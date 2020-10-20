@@ -21,6 +21,11 @@ It comprises the following models:
 
 ![NN_forecasts2](https://user-images.githubusercontent.com/23248450/96621622-c28ed380-1300-11eb-8178-45ec6170d9eb.png)
 
+
+## Example of output from the search process of an ARIMA model
+
+![boxjenkins](https://user-images.githubusercontent.com/23248450/96622483-e6064e00-1301-11eb-9feb-f766bc2e2be5.png)
+
  
 ## How to use
  

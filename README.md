@@ -16,7 +16,8 @@ It comprises the following models:
  
  ### Example of a forecast with a LSTM model using the system
  
- ![Optional Text] https://github.com/joana94/intelligent-ts-predictor/blob/main/images/NN_forecasts.png
+![NN_forecasts](https://user-images.githubusercontent.com/23248450/96530982-8ae04700-1280-11eb-8827-eeac63a1ec18.png)
+
  
   
   

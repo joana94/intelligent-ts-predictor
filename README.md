@@ -29,9 +29,9 @@ The system is modular and it is executed through the command line. The correct w
  
 - First, run the 'create_dirs.py' throgh the command line. It will ask for a name project name and will create directory structure as follows:
 
-- :file_folder: /User/Documents/
+- :file_folder: / User / Documents/
   - :file_folder: ../Intelligent TS Predictor/
-     - :file_folder: ../"Project Name"/
+     - :file_folder: ../ "Project Name" /
          - :file_folder: ../Data
          - :file_folder: ../Graphics
          - :file_folder: ../Models

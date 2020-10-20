@@ -46,7 +46,7 @@ The system is modular and it is executed through the command line. The correct w
 
 This is just a brief overview of how the system works. It has a lot of useful features such as checking missing dates and values and automatically filling them with the correct dates and the values through linear interpolation, automatically performing all the data pre-processing necessary to feed time series into Neural Networks, and so on... 
 
-**The good part is the fact that it abstracts the end user of the system from all the inherent complexity of time series forecasting process.**
+**The good part is the fact that it abstracts the end user of the system from all the inherent complexity of the time series forecasting process.**
 
 
 ## Future goals

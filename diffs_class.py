@@ -75,7 +75,7 @@ class Diffs(object):
 
    
     @staticmethod
-    def trend_strength(x, threshold=0.64):
+    def trend_strength_stationarity(x, threshold=0.64):
         """
         Computes the seasonal strength. Measure introduced by Wang, X., Smith, K. A., & Hyndman, R. J. (2006). In:
         Characteristic-based clustering for time series data. Data Mining and Knowledge Discovery, 13(3), 335–364.
@@ -96,7 +96,7 @@ class Diffs(object):
 
 
     @staticmethod
-    def seasonal_strength(x, threshold=0.64):
+    def seasonal_strength_stationarity(x, threshold=0.64):
         """
         Computes the seasonal strength. Measure introduced by Wang, X., Smith, K. A., & Hyndman, R. J. (2006). In:
         Characteristic-based clustering for time series data. Data Mining and Knowledge Discovery, 13(3), 335–364.
@@ -129,20 +129,13 @@ class Diffs(object):
         D: number of seasonal differences required to stationarize the data
         """
         D = 0
-        s_strength = Diffs.seasonal_strength(x)
+        s_strength = Diffs.seasonal_strength_stationarity(x)
         while(s_strength == 1 and D <= max_D):
             D += 1
             df = diff(x, k_diff=0, k_seasonal_diff=1, seasonal_periods=m) 
-            if Diffs.seasonal_strength(df) == 0:
+            if Diffs.seasonal_strength_stationarity(df) == 0:
                 # print(f'Number of seasonal differences to make data stationary: {D}')
                 return D
-            s_strength = Diffs.seasonal_strength(x)
+            s_strength = Diffs.seasonal_strength_stationarity(x)
         # print(f'Number of seasonal differences to make data stationary: {D}')
         return D
-
-# import pandas as pd
-
-# data = pd.read_csv(r"C:\Users\joana\Documents\TESE 2020\Datasets/airline-passengers.csv", index_col=[0], parse_dates=True)
-
-# Diffs.num_diffs(data, seasonal=True, m=12)
-# # Diffs.num_sdiffs(data, m=12)

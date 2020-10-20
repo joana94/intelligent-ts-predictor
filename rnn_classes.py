@@ -3,8 +3,30 @@ from torch import nn, optim
 
 
 class TradRNN(nn.Module):
+    """
+    Class to initialize and instantiate an Elman's (traditional) Recurrent Neural Network.
+        
+    Arguments of class constructor:
+    -------------------------------
+    input_size: int
+        The number of features of the time series. In a univariate time series setting is usually 1.
+    hidden_size: int
+        The number of hidden neurons in the recurrent unit. The output shape of the recurrent unit changes based on this value.
+    n_layers: int
+        The number of stacked recurrent units.
+    output_size: int
+        Related to the number of features to be predicted. For univariate time series is usually 1.
+    seq_len: int
+        The sequence length of each of the input sequences.
+    use_all_h: bool, default: True
+        Whether to use the information from all the hidden states. If False, only the last hidden state is used.
+    dropout_p: float, greater than zero and less than 1, default: 0.1
+        Acts as a regularization technique that helps avoiding overfitting. 
+        It may also be used as an indicator of model uncertainty.
+    """
 
     def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
+   
         super(TradRNN, self).__init__()
 
         self.hidden_size = hidden_size
@@ -58,6 +80,28 @@ class TradRNN(nn.Module):
 
 class GRU(nn.Module):
 
+    """
+    Class to initialize and instantiate a Gated Recurrent Unit (GRU) Neural Network.
+        
+    Arguments of class constructor:
+    -------------------------------
+    input_size: int
+        The number of features of the time series. In a univariate time series setting is usually 1.
+    hidden_size: int
+        The number of hidden neurons in the recurrent unit. The output shape of the recurrent unit changes based on this value.
+    n_layers: int
+        The number of stacked recurrent units.
+    output_size: int
+        Related to the number of features to be predicted. For univariate time series is usually 1.
+    seq_len: int
+        The sequence length of each of the input sequences.
+    use_all_h: bool, default: True
+        Whether to use the information from all the hidden states. If False, only the last hidden state is used.
+    dropout_p: float, greater than zero and less than 1, default: 0.1
+        Acts as a regularization technique that helps avoiding overfitting. 
+        It may also be used as an indicator of model uncertainty.
+    """
+
     def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
         super(GRU, self).__init__()
 
@@ -110,6 +154,27 @@ class GRU(nn.Module):
         return output
 
 class LSTM(nn.Module):
+    """
+    Class to initialize and instantiate a Long Short-Term Memory (LSTM) Neural Network.
+        
+    Arguments of class constructor:
+    -------------------------------
+    input_size: int
+        The number of features of the time series. In a univariate time series setting is usually 1.
+    hidden_size: int
+        The number of hidden neurons in the recurrent unit. The output shape of the recurrent unit changes based on this value.
+    n_layers: int
+        The number of stacked recurrent units.
+    output_size: int
+        Related to the number of features to be predicted. For univariate time series is usually 1.
+    seq_len: int
+        The sequence length of each of the input sequences.
+    use_all_h: bool, default: True
+        Whether to use the information from all the hidden states. If False, only the last hidden state is used.
+    dropout_p: float, greater than zero and less than 1, default: 0.1
+        Acts as a regularization technique that helps avoiding overfitting. 
+        It may also be used as an indicator of model uncertainty.
+    """
 
     def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
         super(LSTM, self).__init__()

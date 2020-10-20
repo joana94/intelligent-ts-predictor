@@ -6,7 +6,241 @@ import numpy as np
 import matplotlib.pyplot as plt
 from rnn_classes import TradRNN, GRU, LSTM
 import time
+import os
+import random
+import pickle
 from metrics_class import PredictionMetrics
+from collections import namedtuple
+from itertools import product
+
+class SearchBestArchitecture(object):
+
+    """
+    Container class for the methods related to the Neural Network optimal hyperparameters search.
+    """
+
+    @staticmethod
+    def search_method(method, params, max_iters = 5):
+        """
+        method: str,
+            Accepts 'grid' or 'random' search.
+        params: OrderedDict
+            Data structure that contains the hyperparameters values.
+        max_iters: int, default: 5
+            Only necessary for the random search.
+        """
+        if method == 'grid':
+            
+            Run = namedtuple('Combination', params.keys())
+        
+            runs = []
+            for v in product(*params.values()):
+                runs.append(Run(*v))
+            
+            return runs
+        
+        if method == 'random':
+                    
+            Run = namedtuple('Combination', params.keys())
+
+            runs = []
+            random.seed(50)
+            for i in range(max_iters):
+                random_params= {k: random.sample(v, 1)[0] for k, v in params.items()}
+                runs.append(Run(*random_params.values()))
+
+            return runs
+
+    @staticmethod
+    def find_architecture(model_name, hyperparameters, search_method, data_x, data_y, epochs, seq_len, max_iters = 5, validation_split=0.1, print_every=1, gradient_clip=1, folder=None):
+        """
+        Trains a neural network on different hyperparameter combinations and chooses the best architecture based on the 
+        global minimum validation across all the inputed hyperparameter combinations. The hyperparameter search can be done
+        through two different algorithms: an exhaustive grid search or a random search.
+        
+        Arguments:
+        ----------
+        model_name: str, 
+            The type of recurrent neural network to be used. It accepts 'rnn', 'gru' or 'lstm' 
+        hyperparameters: OrderedDict
+            The data structure that holds the possible values for each hyperparameter.
+        search_method: str
+            Accepts either 'grid' or 'random' as values. Grid search is recommended for a small hyperparameter search
+            space whereas random search is recommend for bigger search spaces.
+        data_x: numpy.ndarray 
+            The input sequences for training the neural network. The array must have shape (num sequences, sequence length, num features)
+        data_y: numpy.ndarray 
+            The labels of each input sequence. The array must have shape (num sequences, num_features)
+        epochs: int
+            The number of epochs used to train the model
+        max_iters: int, default: 5
+            The maximum number of iterations if the choosen search method is 'random'.
+        validation_split: float, default:0.1
+            How much of the training data to save for validation. The validation data is essential for the hyperparameter search
+        print_every: int, default:1
+            The interval of information printing between epochs
+        """
+        if folder is None:
+            folder = os.getcwd()
+
+        f = open(os.path.join(
+            folder, f'Best {model_name} model search report.txt'), 'w')
+
+        # standard hyperparameter values that should not be changed in order to guarantee the correct functioning of the system
+        input_size = 1
+        output_size = 1
+        n_layers = 2
+        
+        v_split = int(validation_split*len(data_x))
+
+        train_x, val_x = data_x[:-v_split], data_x[-v_split:]
+        train_y, val_y = data_y[:-v_split], data_y[-v_split:]
+
+        training_data = TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
+    
+
+        validation_data = TensorDataset(torch.from_numpy(val_x), torch.from_numpy(val_y))
+        
+        train_hist = np.zeros(epochs+1)
+        valid_hist = np.zeros(epochs+1)
+        
+        all_train_hist = []
+        all_valid_hist = []
+        
+        # evaluation criterion
+        criterion = torch.nn.MSELoss()
+        
+        # Count number of iterations with diferent hyperparameters
+        iteration = 1
+        
+        best_model = None
+        best_score = np.Inf
+        
+        for hyperparam in SearchBestArchitecture.search_method(method=search_method, params=hyperparameters, max_iters=max_iters):
+            
+            train_loader = DataLoader(training_data, shuffle= hyperparam.shuffle, 
+                                                    batch_size=hyperparam.batch_size, drop_last=True)
+            
+            valid_loader = DataLoader(validation_data, shuffle=hyperparam.shuffle, 
+                                    batch_size=hyperparam.batch_size, drop_last=True)
+
+            
+            if model_name.lower() == 'tradrnn':
+                model = TradRNN(device='cpu', input_size=input_size, hidden_size=hyperparam.hidden_dim, 
+                                output_size=output_size, seq_len=seq_len, n_layers=n_layers)
+        
+            if model_name.lower() =='gru':
+                model = GRU(device='cpu', input_size = input_size, hidden_size=hyperparam.hidden_dim, 
+                            output_size=output_size,seq_len = seq_len, n_layers=n_layers)
+
+            if model_name.lower() =='lstm':
+                model = LSTM(device='cpu',input_size=input_size, hidden_size=hyperparam.hidden_dim, 
+                            output_size= output_size, seq_len=seq_len, n_layers=n_layers)
+            
+            print(f"\n\n> Run: {iteration}", file=f)
+            print(f'> Model: {model_name.upper()}', file=f)
+            print(f'> {hyperparam}', file=f)
+            print('------------------------------------------------------------------------------', file=f)
+
+            # Optimizer definition
+            optimizer = torch.optim.Adam(model.parameters(), lr=hyperparam.learning_rate)
+            
+            valid_loss_min = np.Inf
+            
+            for epoch in range(1, epochs + 1):
+
+                start_time = time.time()
+
+                for input_seq, label in train_loader:
+
+                    # get the output of the NN
+                    out = model(input_seq.float())
+                    # calculate the gradient based on the loss criterion
+                    loss = criterion(out, label.float())
+
+                    for valid_seq, valid_label in valid_loader:
+                        with torch.no_grad():
+                            valid_out = model(valid_seq.float())
+                            valid_loss = criterion(valid_out, valid_label.float())
+
+                    # store validation loss for plot
+                    valid_hist[epoch] = valid_loss.item()
+                
+                # store the train loss for plot
+                train_hist[epoch] = loss.item()
+                epoch_current_time = time.time()
+
+                if epoch % print_every == 0:
+                        print('> Epoch {}/{} \n-> Train loss: {:.6f} \n-> Validation loss: {:.6f}'.format(epoch, epochs, loss.item(), valid_loss.item()), file=f)
+                        print(f'\nEpoch duration: {epoch_current_time - start_time} seconds', file=f)
+
+                # reset acumulated gradients
+                optimizer.zero_grad()
+
+                # backpropagate gradients
+                loss.backward()
+
+                # clip gradient to prevent exploding gradients problem
+                if gradient_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clip)
+
+                # update weights
+                optimizer.step()
+                
+                if valid_loss <= valid_loss_min:
+                    print('Minimum Validation loss decresead from {:.6f} --> {:.6f}\n'.format(valid_loss_min, valid_loss), file=f)
+                    valid_loss_min = valid_loss
+                    
+            current_time = time.time()
+            
+            print('\nMinimum validation loss: {:.6f}'.format(valid_hist[1:].min()), file=f)
+
+            
+            if valid_loss_min <= best_score:
+                print('Global validation loss decreased from {:.6f} --> {:.6f}'.format(best_score,valid_loss_min), file=f)
+                
+                best_score = valid_loss_min
+                best_model = model
+                best_model_train_hist = train_hist
+                best_model_valid_hist = valid_hist
+                best_params = {'model': best_model,
+                            'batch_size': hyperparam.batch_size, 'shuffle': hyperparam.shuffle, 
+                            'learning_rate': hyperparam.learning_rate, 'hidden_dim': hyperparam.hidden_dim, 
+                            'seq_len': seq_len}
+
+            print(f'\nIteration total time: {str(current_time - start_time)} seconds.', file=f) 
+            iteration += 1
+        
+        print('\n--> GLOBAL MINIMUM VALIDATION LOSS: {} <--'.format(valid_loss_min), file=f)
+
+        print('\n-----------------------------------------------------------------', file=f)
+        print(f'BEST ARCHITECTURE FOR {model_name}', file=f)
+        print('-----------------------------------------------------------------', file=f)
+        for k, v in best_params.items():
+            print("{}: {}".format(k, v), file=f)
+
+        f.close()
+
+        return best_model, best_model_train_hist[1:], best_model_valid_hist[1:], best_params
+    
+    @staticmethod
+    def save_best_params(best_params, model_name):
+        """
+        Pickle best parameters to json file.
+        """
+        with open(os.path.join(os.getcwd(), f'{model_name} best parameters.pkl'), 'wb') as f:
+            jfile = pickle.dump(best_params, f)
+
+    @staticmethod
+    def load_best_params(model_name):
+        """
+        Read back the best parameters
+        """
+        with open(os.path.join(os.getcwd(), f'{model_name} best parameters.pkl'), 'rb') as f:
+            best_p  = pickle.load(f)
+        return best_p
+
+
 
 class NNForecast(object):
 
@@ -16,7 +250,7 @@ class NNForecast(object):
     """
     @staticmethod
     def train(model_name, data_x, data_y, batch_size, hidden_dim, epochs, learning_rate, seq_len, validation_split=None,
-              shuffle=False, gradient_clip=None, print_every=1):
+              shuffle=False, gradient_clip=None, print_every=1, folder=None):
         """
         Contains all the logic for training the RNNs defined in the RNN module.
 
@@ -58,6 +292,12 @@ class NNForecast(object):
         The trained model, the training loss history, the validation loss history (if a validation 
             portion is set) and all the hyperparameters used to train the neural net.
         """
+        if folder is None:
+            folder = os.getcwd()
+
+        f = open(os.path.join(
+            folder, f'{model_name} model training report.txt'), 'w')
+
         # standard hyperparameter values
         input_size = 1
         output_size = 1
@@ -98,9 +338,9 @@ class NNForecast(object):
 
             train_hist = np.zeros(epochs+1)
             valid_hist = np.zeros(epochs+1)
-
-            print(f"Starting Training of {model_name} model")
-
+            print('----------------------------------------', file=f)
+            print(f"Starting Training of {model_name} model", file=f)
+            print('----------------------------------------', file=f)
             for epoch in range(1, epochs + 1):
 
                 start_time = time.time()
@@ -127,7 +367,7 @@ class NNForecast(object):
 
                 if epoch % print_every == 0:
                     print(
-                        f'Epoch {epoch}/{epochs} \nTrain loss: {loss.item()} Validation loss: {valid_loss.item()}')
+                        'Epoch {}/{} \nTrain loss: {:.6f} Validation loss: {:.6f}'.format(epoch,epochs,loss.item(),valid_loss.item()), file=f)
 
                 # reset acumulated gradients
                 optimizer.zero_grad()
@@ -171,9 +411,9 @@ class NNForecast(object):
                     epoch_current_time = time.time()
 
                 if epoch % print_every == 0:
-                    print(f'Epoch {epoch}/{epochs} Train loss: {loss.item()}')
+                    print('Epoch {}/{} Train loss: {:.6f}'.format(epoch, epochs, loss.item()), file=f)
                     print(
-                        f'Epoch duration: {epoch_current_time - start_time} seconds')
+                        f'Epoch duration: {epoch_current_time - start_time} seconds', file=f)
                     # reset acumulated gradients
                     optimizer.zero_grad()
 
@@ -190,35 +430,14 @@ class NNForecast(object):
 
             current_time = time.time()
             print(
-                f"\nTotal training time: {str(current_time-start_time)} seconds.")
+                f"\nTotal training time: {str(current_time-start_time)} seconds.", file=f)
+            
+            f.close()
             return model.train(), train_hist[1:]
 
-    @staticmethod
-    def plot_losses(history):
-        """
-        Plots the training and validation losses over each epoch.
-        """
-
-        if len(history) == 2:
-
-            train_hist = history[0]
-            valid_hist = history[1]
-
-            plt.plot(train_hist, label='Training Loss')
-            plt.plot(valid_hist, label='Validation Loss')
-            plt.legend()
-
-            return
-
-        else:
-
-            plt.plot(history[0], label='Training Loss')
-            plt.legend()
-
-            return
 
     @staticmethod
-    def test_prediction(model, train_x, scaler_object, test_data, evaluation_metrics):
+    def test_predictions(model, train_x, scaler_object, test_data, evaluation_metrics):
         """
         Used to make predictions for the test period and to evaluate how far the point predicitons
         are from the the real values in the test set.
@@ -269,28 +488,85 @@ class NNForecast(object):
             predicted_values = scaler_object.inverse_transform(
                 np.expand_dims(predictions, axis=0)).flatten()
 
-        true_and_predicted_values = test_data.copy()
-        true_and_predicted_values['Predictions'] = predicted_values
-        
+        true_and_predicted = test_data.copy()
+        true_and_predicted['Predictions'] = predicted_values
+
         eval_dict = {}
 
         if 'mse' in evaluation_metrics:
             eval_dict['Mean Square Error'] = PredictionMetrics.mean_squared_error(
-                test_data.values, predicted_values.values)
+                true_and_predicted.iloc[:,0].values, true_and_predicted.iloc[:,1].values)
         if 'rmse' in evaluation_metrics:
             eval_dict['Root Mean Square Error'] = PredictionMetrics.root_mean_squared_error(
-                test_data.values, predicted_values.values)
+                true_and_predicted.iloc[:,0].values, true_and_predicted.iloc[:,1].values)
         if 'mae' in evaluation_metrics:
             eval_dict['Mean Absolute Error'] = PredictionMetrics.mean_absolute_error(
-                test_data.values, predicted_values.values)
+                true_and_predicted.iloc[:,0].values, true_and_predicted.iloc[:,1].values)
         if 'mdae' in evaluation_metrics:
             eval_dict['Median Absolute Error'] = PredictionMetrics.median_absolute_error(
-                test_data.values, predicted_values.values)
+                true_and_predicted.iloc[:,0].values, true_and_predicted.iloc[:,1].values)
 
         eval_df = pd.DataFrame.from_dict(eval_dict, orient='index', columns=[
-                                         'Predictive Performance']).T
+                                         'Predictive Performance'])
 
-        return true_and_predicted_values, eval_df
+        return true_and_predicted, eval_df
+
+    @staticmethod
+    def save_eval_metrics(model_name, metrics_df, folder):
+        """
+        """
+        with open(os.path.join(folder, f'{model_name} predictive performance.txt'), 'w') as f:
+            metrics_df.to_string(f)
+        metrics_df.to_csv(os.path.join(folder, f'{model_name} predictive performance.csv'))
+
+    @staticmethod
+    def save_test_predictions(model_name, predictions, folder, train_data=None):
+        """
+        """
+        # Save test prediction to a .txt file
+        with open(os.path.join(folder, f'{model_name} predictions for {predictions.columns[0]} test set.txt'), 'w') as f:
+            predictions.to_string(f)
+
+        # Save test predictions to a .csv file
+        predictions.to_csv(os.path.join(folder, f'{model_name} predictions for {predictions.columns[0]} test set.csv'))
+
+        plt.style.use('fivethirtyeight')
+        plt.rcParams["figure.figsize"] = (12, 6)
+
+        if train_data is not None:
+
+            plt.plot(train_data.index, train_data,
+                     label='Train set (historical) values', lw=2)
+
+            plt.plot(predictions.index, predictions.iloc[:,0],
+                     label='Test set (real) values', lw=2)
+
+            plt.plot(
+                predictions.index,
+                predictions.iloc[:, 1],
+                label='Predictions', lw=2)
+            plt.legend(loc='upper left')
+            plt.title(f'Predictions for {predictions.columns[0]}')
+            plt.xlabel('Dates')
+            plt.ylabel('Values')
+            plt.tight_layout()
+
+        else:
+            
+            plt.plot(predictions.index, predictions.iloc[:,0],
+                     label='Test set (real) values', lw=2)
+
+            plt.plot(
+                predictions.index,
+                predictions.iloc[:, 1],
+                label='Predictions', lw=2)
+            plt.legend(loc='upper left')
+            plt.title(f'Predictions for {predictions.columns[0]}')
+            plt.xlabel('Dates')
+            plt.ylabel('Values')
+        
+        plt.savefig(os.path.join(folder, f'{predictions.columns[0]} test predictions.png'))
+        plt.close()
 
     @staticmethod
     def forecast(model, data_x, scaler_object, n_periods, confidence=0.95, num_sims=100, multiplier=4):
@@ -369,22 +645,141 @@ class NNForecast(object):
         confidence_dict = {'0.8': 1.282, '0.85': 1.282,
                            '0.9': 1.645, '0.95': 1.960, '0.99': 2.576}
 
-        upper_bound = []
-        lower_bound = []
+        upper_bound = {}
+        lower_bound = {}
 
         if isinstance(confidence, list):
-            # if a list of more than one confidence level is passed
+            # If a list of confidence levels is passed
             for conf_level in confidence:
-                # Computes the upper and lower bounds for each of the passed confidence levels
-                upper_bound.append(
-                    (y_hat_mean + confidence_dict[str(conf_level)]*y_hat_std*multiplier).squeeze())
-                lower_bound.append(
-                    (y_hat_mean - confidence_dict[str(conf_level)]*y_hat_std*multiplier).squeeze())
+                upper_bound[str(conf_level)] = (
+                    y_hat_mean + confidence_dict[str(conf_level)]*y_hat_std*multiplier).squeeze()
+                lower_bound[str(conf_level)] = (
+                    y_hat_mean - confidence_dict[str(conf_level)]*y_hat_std*multiplier).squeeze()
         else:
             # If a single confidence level is passed
-            upper_bound = (
+            upper_bound[str(confidence)] = (
                 y_hat_mean + confidence_dict[str(confidence)]*y_hat_std*multiplier).squeeze()
-            lower_bound = (
+            lower_bound[str(confidence)] = (
                 y_hat_mean - confidence_dict[str(confidence)]*y_hat_std*multiplier).squeeze()
 
-        return y_hat_mean, upper_bound, lower_bound, confidence
+        return y_hat_mean, upper_bound, lower_bound
+
+    @staticmethod
+    def nn_forecast_to_df(point_forecasts, upper_bound, lower_bound, model_name, original_data=None, folder=None):
+        """
+        Converts the point forecasts array and upper and lower bounds dictionaries into a pd.DataFrame
+
+        Arguments
+        ----------
+        point_forecasts: np.array
+            The point forecasts outputed by the forecast() method
+        upper_bound: dict
+            The dictionary of the confidence levels and corresponding upper bound values
+        lower_bound: dict
+            The dictionary of the confidence levels and corresponding upper bound values
+        original_data: Optional, pd.DataFrame with Datetime index, default: None
+            Used to infer a datetime format for the index of the forecasts dataframe.
+            If none is given the forecasts will have a numeric index.
+
+        Returns
+        -------
+        A pandas DataFrame will the point forecasts all the accompanying prediction intervals for
+        each given confidence level.
+        """
+        if original_data is not None:
+            fc_dates = pd.date_range(original_data.index.max(), periods=len(
+                point_forecasts), freq=pd.infer_freq(original_data.index))
+            fc_df = pd.DataFrame(data=point_forecasts,
+                                 index=fc_dates, columns=['Predictions'])
+        else:
+            fc_df = pd.DataFrame(data=point_forecasts, columns=['Predictions'])
+
+        for i, j in zip(upper_bound.keys(), lower_bound.keys()):
+            fc_df[f'Upper {int(float(i)*100)} % IC'] = upper_bound[i]
+            fc_df[f'Lower {int(float(j)*100)} % IC'] = lower_bound[j]
+
+        if folder is not None:
+            fc_df.to_csv(os.path.join(folder, f'{model_name} forecasts.csv'))
+
+            with open(os.path.join(folder, f'{model_name} forecasts.txt'), 'w') as f:
+                fc_df.to_string(f)
+        
+        return fc_df
+
+    @staticmethod
+    def plot_nn_forecast(model_name, forecasts, original_data=None, folder=None):
+        """
+        Creates a plot for the neural network point forecasts and accompanying prediction intervals 
+        """
+        plt.style.use('fivethirtyeight')
+        plt.rcParams["figure.figsize"] = (12, 8)
+
+        if original_data is not None:
+
+            plt.plot(original_data.index, original_data,
+                     label='Historical values', lw=2)
+
+            plt.plot(
+                forecasts.index,
+                forecasts.iloc[:, 0],
+                label='Predictions', c='g', lw=2)
+
+            for i in range(1, len(forecasts.columns), 2):
+                plt.fill_between(forecasts.index,
+                                 forecasts.iloc[:, i],
+                                 forecasts.iloc[:, i+1],
+                                 color='g', alpha=0.1, lw=0, label=forecasts.columns[i][6:])
+            plt.legend(loc='upper left')
+            plt.title(
+                f'{original_data.columns[0]} Forecasts for future {len(forecasts)} periods'.capitalize())
+
+        else:
+            plt.plot(forecasts.index,
+                     forecasts.iloc[:, 0], label='Predictions', c='g')
+
+            for i in range(1, len(forecasts.columns), 2):
+                plt.fill_between(forecasts.index,
+                                 forecasts.iloc[:, i],
+                                 forecasts.iloc[:, i+1],
+                                 color='g', alpha=0.1, lw=0, label=forecasts.columns[i][6:])
+            plt.legend(loc='upper left')
+            plt.title(
+                f'Forecasts for future {len(forecasts)} periods'.capitalize())
+
+        plt.savefig(os.path.join(folder, f'{model_name} forecasts.png'))
+
+        plt.close()
+
+class NNPlots(object):
+
+    """
+    Container class for all the methods related to Neural Network plotting.
+    """
+    @staticmethod
+    def plot_losses(model_name, train_history, valid_history=None, folder_to_save=None):
+        """
+        Plots the training and validation losses over each epoch.
+        """
+        plt.style.use('fivethirtyeight')
+        plt.rcParams["figure.figsize"] = (12, 8)
+
+        if valid_history is not None:
+
+            plt.plot(train_history, label='Training Loss', lw=2)
+            plt.plot(valid_history, label='Validation Loss', lw=2)
+            plt.legend(loc='upper left')
+            plt.xlabel('Epochs')
+            plt.ylabel('MSE')
+            plt.title('Loss per epoch')
+            plt.savefig(os.path.join(folder_to_save, f'{model_name.upper()} train and validation losses.png'))
+            plt.close()
+        else:
+
+            plt.plot(train_history, label='Training Loss')
+            plt.legend(loc='upper left')
+            plt.xlabel('Epochs')
+            plt.ylabel('MSE')
+            plt.title('Loss per epoch')
+            plt.savefig(os.path.join(folder_to_save, f'{model_name.upper()} train loss.png'))
+            plt.close()
+        

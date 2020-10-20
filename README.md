@@ -1,7 +1,5 @@
 # Intelligent TS Predictor (iTSP)
 
-## Description
-
 Intelligent TS Predictor is an automated system for univariate time series prediction (forecasting).  Besides automatically finding the optimal set of hyperparameters, it also allows to easily compare the performance of different models. Furthermore, and very important, it is able to produce multiple prediction intervals for forecasts produced by the Neural Network models.
 
 It comprises the following models:

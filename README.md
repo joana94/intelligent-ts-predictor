@@ -24,7 +24,7 @@ It comprises the following models:
  ![NN_forecasts](https://user-images.githubusercontent.com/23248450/96530982-8ae04700-1280-11eb-8827-eeac63a1ec18.png)
 
  
-### How to use
+## How to use
  
 The system is modular and it is executed through the command line. The correct way of using it is as follows:
  

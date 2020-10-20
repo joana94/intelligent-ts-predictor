@@ -28,12 +28,12 @@ It comprises the following models:
 The system is modular and it is executed through the command line. The correct way of using it is as follows:
  
  - First, run the 'create_dirs.py' throgh the command line. It will ask for a name project name and will create directory structure as follows:
-:file_folder: (/User/Documents/)
-   :file_folder: (../Intelligent TS Predictor/)
-     :file_folder: (../"Project Name"/)
-         :file_folder: (../Analysis)
-              :file_folder: (../Graphics)
-      :file_folder: (../Models)
-      :file_folder: (../Reports)
+- :file_folder: (/User/Documents/)
+  - :file_folder: (../Intelligent TS Predictor/)
+     - :file_folder: (../"Project Name"/)
+         - :file_folder: (../Analysis)
+         - :file_folder: (../Graphics)
+         - :file_folder: (../Models)
+         - :file_folder: (../Reports)
 
   

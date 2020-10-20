@@ -43,4 +43,12 @@ The system is modular and it is executed through the command line. The correct w
 - The next step is to run the 'model_fitting_module.py' which will find the best set of hyperparameters for the model you chose in the ``config.py``.
 - You can use the ``model_fitting_module.py`` to find the hyperparameters for all the models available in the system (ARIMA, SARIMA, Traditional RNN, GRU and LSTM) and compare all of them as the system automatically produces reports inside the "Project Name"/Models/"Model Name" folder with the predictive performance of each in the test set based on the followig measures: Mean Square Error (MSE), Root Mean Square Error (RMSE), Mean Absolute Error (MAE) and Median Absolute Error (MedAE). 
 - For faster comparison, you can run the ``model_comparison_module.py`` which will produce a bar plot and a report in "Project Name"/Models comparing the performance of all of them.
-- Finally, you can run the 'forecast_module.py' which will give actual forecasts into the future and their respective plots and .csv files that can be used for further analysis.
+- Finally, you can run the ``forecast_module.py`` which will give actual forecasts into the future and their respective plots and .csv files that can be used for further analysis.
+
+This is just a brief overview of how the system works. It has a lot of useful features such as checking missing dates and values and automatically filling them with the correct dates and the values through linear interpolation, automatically performing all the data pre-processing necessary to feed time series into Neural Networks, and so on... 
+
+**The good part is the fact that it abstracts the end user of the system from all the inherent complexity of time series forecasting process.**
+
+### Future goals
+- Refactore the code.
+- Add more complex NN models capable of dealing with exogenous features.

@@ -30,12 +30,12 @@ The system is modular and it is executed through the command line. The correct w
 - First, run the 'create_dirs.py' throgh the command line. It will ask for a name project name and will create directory structure as follows:
 
 - :file_folder: / User / Documents/
-  - :file_folder: ../Intelligent TS Predictor/
-     - :file_folder: ../ "Project Name" /
-         - :file_folder: ../Data
-         - :file_folder: ../Graphics
-         - :file_folder: ../Models
-         - :file_folder: ../Reports
+  - :file_folder: .. / Intelligent TS Predictor /
+     - :file_folder: .. / "Project Name" /
+         - :file_folder: .. / Data
+         - :file_folder: .. / Graphics
+         - :file_folder: .. / Models
+         - :file_folder: .. / Reports
 
 - Second, insert the time series csv for which want to forecast (or fit models and compare) inside the "Project Name"/Data folder. It must have a **datetime** column.
 - Before proceeding, you can check the ``config.py`` which is where you can configure the most important parts of the system to suit your dataset.

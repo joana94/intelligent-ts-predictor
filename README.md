@@ -1,6 +1,6 @@
 # Intelligent TS Predictor (iTSP)
 
-### Description
+## Description
 
 Intelligent TS Predictor is an automated system for univariate time series prediction (forecasting).  Besides automatically finding the optimal set of hyperparameters, it also allows to easily compare the performance of different models. Furthermore, and very important, it is able to produce multiple prediction intervals for forecasts produced by the Neural Network models.
 
@@ -18,8 +18,9 @@ It comprises the following models:
 - The NNs were implemented as being "autoregressive", i.e. they predict one time step into the future which is then fed back into the model in order to predict the following time steps.
 - The approach to the generation of the prediction intervals is inspired by the work of Gal & Ghahramani (2016), i.e. dropout is used during training and also during inference. During inference, the NN generates at each timestep a high number of predictions/simulations (the default value in the system is 100) and then the mean value is used as point forecasts and the standard deviation is used to compute the prediction intervals (that use the Normal Distribution coverage probabilities). Any of these NNs use the hyperbolic tangent activation function which does not produce forecasts with high variance and, consequently, leads to fairly narrow prediction intervals. In order to overcome that "problem", the system uses a multiplier factor to augment the prediction intervals to a more reasonable width.
  
-### Example of a forecast with a LSTM model using the Intelligent TS Predictor system
- 
+## Example of a forecast with a LSTM model using the Intelligent TS Predictor system
+
+
  ![NN_forecasts](https://user-images.githubusercontent.com/23248450/96530982-8ae04700-1280-11eb-8827-eeac63a1ec18.png)
 
  
@@ -49,6 +50,7 @@ This is just a brief overview of how the system works. It has a lot of useful fe
 
 **The good part is the fact that it abstracts the end user of the system from all the inherent complexity of time series forecasting process.**
 
-### Future goals
+
+## Future goals
 - Refactore the code.
 - Add more complex NN models capable of dealing with exogenous features.

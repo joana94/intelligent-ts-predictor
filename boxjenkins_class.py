@@ -7,6 +7,8 @@ import pickle
 import time
 from metrics_class import PredictionMetrics
 from diffs_class import Diffs
+from utils_classes import TimeSeriesPlots
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 
 class BoxJenkins(object):
@@ -340,6 +342,11 @@ class BoxJenkins(object):
             results = fitted_model.fit(disp=0, low_memory=True)
             end_time_fit = time.time()
             print(f'\n>Fitting time: {end_time_fit - start_time_fit} seconds')
+      
+        if folder is not None:
+            TimeSeriesPlots.box_jenkins_diagnostics(model_name=self._model, results=results, folder=folder)
+            BoxJenkins.box_jenkins_method_report(model_name=self._model, results=results, metric=None, folder=folder)
+            print(f'> Box-Jenkins method report and diagnostics plots saved to {folder}')
         
         return results
 
@@ -449,7 +456,7 @@ class BoxJenkins(object):
         mean_pred = preds.predicted_mean.to_frame(name='Predictions')
         conf_ic = preds.conf_int(alpha=(1-confidence))
         conf_ic = conf_ic.rename(columns={
-                                 conf_ic.columns[0]: f'Lower CI ({confidence}%)', conf_ic.columns[1]: f'Upper CI ({confidence}%)'})
+                                 conf_ic.columns[0]: f'Lower {confidence}% PI', conf_ic.columns[1]: f'Upper {confidence}% PI'})
         pred_df = mean_pred.join(conf_ic)
 
         return pred_df
@@ -474,7 +481,7 @@ class BoxJenkins(object):
             plt.fill_between(forecast_df.index,
                              forecast_df.iloc[:, 1],
                              forecast_df.iloc[:, 2],
-                             alpha=0.1, lw=0)
+                             alpha=0.1, lw=0, label=forecast_df.columns[1][6:])
 
             plt.legend(loc='upper left')
             plt.title(
@@ -516,6 +523,85 @@ class BoxJenkins(object):
         with open(os.path.join(os.getcwd(), f'{model_name} best parameters.pkl'), 'rb') as f:
             best_p  = pickle.load(f)
         return best_p
+
+    @staticmethod
+    def ljung_box(results, significance=0.05):
+        """
+        Determines if the residuals of a model are independently distribuded.
+        H0: The residuals are not serially correlated.
+        H1: The residuals are autocorrelated.
+
+        Returns:
+        --------
+        0 if the null hypothesis cannot be rejected
+        1 if the null hypothesis is rejected for the given significance level
+        """
+        result = sm.stats.diagnostic.acorr_ljungbox(results.resid, return_df=True).iloc[results.df_model,1]
+        if result > significance:
+            return result, 0
+        return result, 1
+
+    @staticmethod
+    def box_jenkins_method_report(model_name, results, metric= None, folder=None):
+        """
+        """
+        if folder is None:
+            folder = os.getcwd()
+
+        f = open(os.path.join(folder, 'Box Jenkins Method Report.txt'), 'w')
+        order = results.specification['order']
+        seas_order = results.specification['seasonal_order']
+        
+        print('------------------------------------------------------------------------------', file=f)
+        print("                        1. IDENTIFICATION", file=f)
+        print('------------------------------------------------------------------------------', file=f)
+
+        if model_name == 'ARIMA':
+            print(f'\n Model: {model_name} {order}',file=f)
+
+            print(f'\n Description:', file=f)
+            print('\n The model uses:', file=f)
+            print(f' -> p: {order[0]} lags for the non-seasonal AR component: AR({order[0]})',file=f)
+            print(f' -> d: {order[1]} non-seasonal difference(s): I({order[1]})', file=f)
+            print(f' -> q: {order[2]} lags for the non-seasonal MA component: AR({order[2]})', file=f)
+
+        elif model_name == 'SARIMA':
+            print(f'\n Model: {model_name} {order}x{seas_order}', file=f)
+            print(f'\n Description:', file=f)
+            print('\n The model uses:', file=f)
+            print(f' -> p: {order[0]} lags for the non-seasonal AR component: AR({order[0]})', file=f)
+            print(f' -> d: {order[1]} non-seasonal difference(s): I({order[1]})', file=f)
+            print(f' -> q: {order[2]} lags for the non-seasonal MA component: AR({order[2]})', file=f)
+            print(f' -> P: {seas_order[0]} lags for the non-seasonal AR component: AR({seas_order[0]})', file=f)
+            print(f' -> D: {seas_order[1]} non-seasonal difference(s): I({seas_order[0]})', file=f)
+            print(f' -> Q: {seas_order[2]} lags for the non-seasonal MA component: AR({seas_order[2]})', file=f)
+            print(f' -> m: {seas_order[2]} as the seasonal period', file=f)
+        
+        if metric is not None:
+            print(f'\nMetric: {metric.upper()} -> {results.metric}', file=f)
+
+        print('\n------------------------------------------------------------------------------', file=f)
+        print("                        2. ESTIMATION", file=f)
+        print('------------------------------------------------------------------------------', file=f)
+
+        estimation = results.summary().tables[1]
+        print()
+        print(estimation, file=f)
+
+        print('\n------------------------------------------------------------------------------', file=f)
+        print("                        3. DIAGNOSTICS", file=f)
+        print('------------------------------------------------------------------------------', file=f)
+        sig = 0.05
+        lb_test = BoxJenkins.ljung_box(results, significance=sig)
+        print(f'\n Ljung-Box test pvalue: {lb_test[0]}', file=f)
+        if lb_test[1] == 0:
+            print(f' -> Cannot reject the null hypothesis at the {sig*100}% level', file=f)
+            print(f' -> The residuals of the model are uncorrelated.', file=f)
+        if lb_test[1] == 1:
+            print(f' -> Reject the null hypothesis at the {int(sig*100)}% signficance level', file=f)
+            print(f' -> The residuals of the model are correlated.', file=f)
+        print(f'\n Please check the accompanying {model_name} diagnostic plots.png image.', file=f)
+
 
     def __repr__(self):
 

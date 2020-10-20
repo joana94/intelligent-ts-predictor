@@ -397,9 +397,44 @@ class TimeSeriesPlots(object):
         """
         """
         plt.style.use('fivethirtyeight')
-        plt.rcParams["figure.figsize"] = (12, 12)
+        plt.rcParams["figure.figsize"] = (12, 8)
         df.plot.bar()
         plt.title('Errors for each model')
         plt.xticks(rotation=0)
         plt.savefig(os.path.join(folder, 'Model comparison.png'))
         plt.close()
+
+    @staticmethod
+    def box_jenkins_diagnostics(model_name, results, folder=None):
+        """
+        Diagnostic plots for the residuals of a model.
+        """
+        order = results.specification['order']
+        seas_order = results.specification['seasonal_order']
+        resid = results.resid
+
+        plt.style.use('fivethirtyeight')
+        plt.rcParams["figure.figsize"] = (12,8)
+        
+        fig, ax = plt.subplots(2, 2)
+        if model_name == 'ARIMA':
+                fig.suptitle(f'Model: {model_name} {order}')
+        elif model_name == 'SARIMA':
+                fig.suptitle(f'{model_name} {order}x{seas_order}')
+        residuals_acf = plot_acf(resid, ax=ax[0, 0], lw=2)
+        ax[0,0].title.set_text('Residuals ACF')
+        residuals_pacf = plot_pacf(resid, ax=ax[0, 1], lw=2)
+        ax[0, 1].title.set_text('Residuals PACF')
+        ax[1, 0].plot(resid, lw=2)
+        ax[1,0].title.set_text('Residuals Plot')
+        resid.plot(kind='kde', lw=2)
+        ax[1,1].title.set_text('Residuals Distribution')
+        plt.tight_layout(pad=2.5)
+        
+        if folder is not None: 
+            plt.savefig(os.path.join(folder, f'{model_name} diagnostic plots.png'))
+
+        plt.close()
+
+        
+    

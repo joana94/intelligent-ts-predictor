@@ -5,7 +5,8 @@ import os
 from statsmodels.tsa.stattools import kpss
 import warnings
 warnings.filterwarnings('ignore')
-#from load_data import DATASET
+from boxjenkins_class import BoxJenkins
+
 
 class StatsReports(object):
     """
@@ -95,6 +96,6 @@ class StatsReports(object):
                 print('Suggests a non-existent or weak seasonal pattern', file=f)
         except:
             pass
-        
 
+   
 

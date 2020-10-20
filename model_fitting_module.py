@@ -34,6 +34,7 @@ def main():
 
         # Search the best model and estimate its parameters
         print('> Searching and fitting the best model...')
+        print('> This process may take a while.')
         fitted_model = model.fit(metric=config.metric, max_p=config.max_p, d=config.d,
                                 max_q=config.max_q, seasonal=config.SEASONAL, m=config.M,
                                 max_P=config.max_P, D=config.D, max_Q=config.max_Q, folder=model_folder)

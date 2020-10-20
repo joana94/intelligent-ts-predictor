@@ -32,11 +32,11 @@ def main():
 
         if model._model == 'ARIMA':
             fitted_model = model.fit_to_entire_dataset(
-                p=best_params_dict['p'], d=best_params_dict['d'], q=best_params_dict['q'], m=1)
+                p=best_params_dict['p'], d=best_params_dict['d'], q=best_params_dict['q'], m=1, folder=forecasts_folder)
         elif model._model == 'SARIMA':
             fitted_model = model.fit_to_entire_dataset(
                 p=best_params_dict['p'], d=best_params_dict['d'], q=best_params_dict['q'], seasonal=True, m=best_params_dict['m'],
-                P=best_params_dict['P'], D=best_params_dict['D'], Q=best_params_dict['Q'])
+                P=best_params_dict['P'], D=best_params_dict['D'], Q=best_params_dict['Q'], folder=forecasts_folder)
 
         # Computing the forecasts from the best model
         fc_df = BoxJenkins.forecast(model= fitted_model, n_periods=config.N_PERIODS, confidence=0.95)
@@ -48,7 +48,7 @@ def main():
         # Save forecasts plot to model folder
         BoxJenkins.save_forecast_plot(
             fc_df, folder=forecasts_folder, model_name=config.MODEL, original_data=original_data)
-        print(f'> Forecast files and plot saved to {model_folder}')
+        print(f'> Forecast files and plot saved to {forecasts_folder}')
 
 
     if config.MODEL == 'TradRNN' or config.MODEL == 'GRU' or config.MODEL == 'LSTM':

@@ -151,6 +151,6 @@ MODEL COMPARISON CONFIGURATIONS
 # You just need to spceficiy the names of the models you fitted
 # in the below global variable MODELS
 
-MODELS = ['GRU', 'ARIMA'] # -> You can add any of the models: ARIMA, SARIMA, TradRNN, GRU or LSTM
+MODELS = ['SARIMA', 'ARIMA', 'GRU'] # -> You can add any of the models: ARIMA, SARIMA, TradRNN, GRU or LSTM
                           # -> as long as you have fitted them to the data
 

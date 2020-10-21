@@ -525,7 +525,7 @@ class BoxJenkins(object):
         return best_p
 
     @staticmethod
-    def ljung_box(results, significance=0.05):
+    def ljung_box(results, significance=0.05, period=None):
         """
         Determines if the residuals of a model are independently distribuded.
         H0: The residuals are not serially correlated.
@@ -536,7 +536,8 @@ class BoxJenkins(object):
         0 if the null hypothesis cannot be rejected
         1 if the null hypothesis is rejected for the given significance level
         """
-        result = sm.stats.diagnostic.acorr_ljungbox(results.resid, return_df=True).iloc[results.df_model,1]
+        deg_free = results.df_model
+        result = sm.stats.diagnostic.acorr_ljungbox(results.resid, return_df=True, period=period).iloc[deg_free-1,1]
         if result > significance:
             return result, 0
         return result, 1
@@ -551,6 +552,7 @@ class BoxJenkins(object):
         f = open(os.path.join(folder, 'Box Jenkins Method Report.txt'), 'w')
         order = results.specification['order']
         seas_order = results.specification['seasonal_order']
+        sig = 0.05
         
         print('------------------------------------------------------------------------------', file=f)
         print("                        1. IDENTIFICATION", file=f)
@@ -563,7 +565,9 @@ class BoxJenkins(object):
             print('\n The model uses:', file=f)
             print(f' -> p: {order[0]} lags for the non-seasonal AR component: AR({order[0]})',file=f)
             print(f' -> d: {order[1]} non-seasonal difference(s): I({order[1]})', file=f)
-            print(f' -> q: {order[2]} lags for the non-seasonal MA component: AR({order[2]})', file=f)
+            print(f' -> q: {order[2]} lags for the non-seasonal MA component: MA({order[2]})', file=f)
+
+            lb_test = BoxJenkins.ljung_box(results, significance=sig)
 
         elif model_name == 'SARIMA':
             print(f'\n Model: {model_name} {order}x{seas_order}', file=f)
@@ -574,9 +578,11 @@ class BoxJenkins(object):
             print(f' -> q: {order[2]} lags for the non-seasonal MA component: AR({order[2]})', file=f)
             print(f' -> P: {seas_order[0]} lags for the non-seasonal AR component: AR({seas_order[0]})', file=f)
             print(f' -> D: {seas_order[1]} non-seasonal difference(s): I({seas_order[0]})', file=f)
-            print(f' -> Q: {seas_order[2]} lags for the non-seasonal MA component: AR({seas_order[2]})', file=f)
-            print(f' -> m: {seas_order[2]} as the seasonal period', file=f)
-        
+            print(f' -> Q: {seas_order[2]} lags for the non-seasonal MA component: MA({seas_order[2]})', file=f)
+            print(f' -> m: {seas_order[3]} as the seasonal period', file=f)
+
+            lb_test = BoxJenkins.ljung_box(results, significance=sig, period=seas_order[3])
+
         if metric is not None:
             print(f'\nMetric: {metric.upper()} -> {results.metric}', file=f)
 
@@ -591,8 +597,7 @@ class BoxJenkins(object):
         print('\n------------------------------------------------------------------------------', file=f)
         print("                        3. DIAGNOSTICS", file=f)
         print('------------------------------------------------------------------------------', file=f)
-        sig = 0.05
-        lb_test = BoxJenkins.ljung_box(results, significance=sig)
+        
         print(f'\n Ljung-Box test pvalue: {lb_test[0]}', file=f)
         if lb_test[1] == 0:
             print(f' -> Cannot reject the null hypothesis at the {sig*100}% level', file=f)
@@ -600,7 +605,7 @@ class BoxJenkins(object):
         if lb_test[1] == 1:
             print(f' -> Reject the null hypothesis at the {int(sig*100)}% signficance level', file=f)
             print(f' -> The residuals of the model are correlated.', file=f)
-        print(f'\n Please check the accompanying {model_name} diagnostic plots.png image.', file=f)
+        print(f"\n Please check the accompanying '{model_name} diagnostic plots.png'", file=f)
 
 
     def __repr__(self):

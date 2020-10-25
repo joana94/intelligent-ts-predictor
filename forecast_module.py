@@ -51,7 +51,7 @@ def main():
         print(f'> Forecast files and plot saved to {forecasts_folder}')
 
 
-    if config.MODEL == 'TradRNN' or config.MODEL == 'GRU' or config.MODEL == 'LSTM':
+    if config.MODEL == 'RNN' or config.MODEL == 'GRU' or config.MODEL == 'LSTM':
 
         best_params_dict = SearchBestArchitecture.load_best_params(
             model_name=config.MODEL)

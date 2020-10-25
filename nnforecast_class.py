@@ -12,6 +12,7 @@ import pickle
 from metrics_class import PredictionMetrics
 from collections import namedtuple
 from itertools import product
+from tqdm import tqdm
 
 class SearchBestArchitecture(object):
 
@@ -86,6 +87,9 @@ class SearchBestArchitecture(object):
         f = open(os.path.join(
             folder, f'Best {model_name} model search report.txt'), 'w')
 
+        # Automatically choosing the device for tensor calculations
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
+
         # standard hyperparameter values that should not be changed in order to guarantee the correct functioning of the system
         input_size = 1
         output_size = 1
@@ -116,7 +120,7 @@ class SearchBestArchitecture(object):
         best_model = None
         best_score = np.Inf
         
-        for hyperparam in SearchBestArchitecture.search_method(method=search_method, params=hyperparameters, max_iters=max_iters):
+        for hyperparam in tqdm(SearchBestArchitecture.search_method(method=search_method, params=hyperparameters, max_iters=max_iters)):
             
             train_loader = DataLoader(training_data, shuffle= hyperparam.shuffle, 
                                                     batch_size=hyperparam.batch_size, drop_last=True)
@@ -125,17 +129,17 @@ class SearchBestArchitecture(object):
                                     batch_size=hyperparam.batch_size, drop_last=True)
 
             
-            if model_name.lower() == 'tradrnn':
-                model = TradRNN(device='cpu', input_size=input_size, hidden_size=hyperparam.hidden_dim, 
-                                output_size=output_size, seq_len=seq_len, n_layers=n_layers)
+            if model_name.lower() == 'rnn':
+                model = TradRNN( input_size=input_size, hidden_size=hyperparam.hidden_dim, 
+                                output_size=output_size, seq_len=seq_len, n_layers=n_layers).to(device)
         
             if model_name.lower() =='gru':
-                model = GRU(device='cpu', input_size = input_size, hidden_size=hyperparam.hidden_dim, 
-                            output_size=output_size,seq_len = seq_len, n_layers=n_layers)
+                model = GRU(input_size = input_size, hidden_size=hyperparam.hidden_dim, 
+                            output_size=output_size,seq_len = seq_len, n_layers=n_layers).to(device)
 
             if model_name.lower() =='lstm':
-                model = LSTM(device='cpu',input_size=input_size, hidden_size=hyperparam.hidden_dim, 
-                            output_size= output_size, seq_len=seq_len, n_layers=n_layers)
+                model = LSTM(input_size=input_size, hidden_size=hyperparam.hidden_dim, 
+                            output_size= output_size, seq_len=seq_len, n_layers=n_layers).to(device)
             
             print(f"\n\n> Run: {iteration}", file=f)
             print(f'> Model: {model_name.upper()}', file=f)
@@ -153,15 +157,20 @@ class SearchBestArchitecture(object):
 
                 for input_seq, label in train_loader:
 
+                    input_seq.to(device), label.to(device)
+
                     # get the output of the NN
-                    out = model(input_seq.float())
+                    out = model(input_seq.to(device).float())
                     # calculate the gradient based on the loss criterion
-                    loss = criterion(out, label.float())
+                    loss = criterion(out.to(device), label.to(device).float())
 
                     for valid_seq, valid_label in valid_loader:
+
+                        valid_seq.to(device), valid_label.to(device)
+
                         with torch.no_grad():
-                            valid_out = model(valid_seq.float())
-                            valid_loss = criterion(valid_out, valid_label.float())
+                            valid_out = model(valid_seq.to(device).float())
+                            valid_loss = criterion(valid_out.to(device), valid_label.to(device).float())
 
                     # store validation loss for plot
                     valid_hist[epoch] = valid_loss.item()
@@ -298,22 +307,25 @@ class NNForecast(object):
         f = open(os.path.join(
             folder, f'{model_name} model training report.txt'), 'w')
 
+        # Automatically choosing the device for tensor calculations
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
+
         # standard hyperparameter values
         input_size = 1
         output_size = 1
         n_layers = 2
 
         if model_name.lower() == 'rnn':
-            model = TradRNN(device='cpu', input_size=input_size, hidden_size=hidden_dim,
-                            output_size=output_size, seq_len=seq_len, n_layers=n_layers)
+            model = TradRNN(input_size=input_size, hidden_size=hidden_dim,
+                            output_size=output_size, seq_len=seq_len, n_layers=n_layers).to(device)
 
         if model_name.lower() == 'gru':
-            model = GRU(device='cpu', input_size=input_size, hidden_size=hidden_dim,
-                        output_size=output_size, seq_len=seq_len, n_layers=n_layers)
+            model = GRU(input_size=input_size, hidden_size=hidden_dim,
+                        output_size=output_size, seq_len=seq_len, n_layers=n_layers).to(device)
 
         if model_name.lower() == 'lstm':
-            model = LSTM(device='cpu', input_size=input_size, hidden_size=hidden_dim,
-                         output_size=output_size, seq_len=seq_len, n_layers=n_layers)
+            model = LSTM(input_size=input_size, hidden_size=hidden_dim,
+                         output_size=output_size, seq_len=seq_len, n_layers=n_layers).to(device)
 
         # evaluation criterion
         criterion = nn.MSELoss()
@@ -347,16 +359,21 @@ class NNForecast(object):
 
                 for input_seq, label in train_loader:
 
+                    input_seq.to(device), label.to(device)
+
                     # get the output of the NN
-                    out = model(input_seq.float())
+                    out = model(input_seq.to(device).float())
                     # calculate the gradient based on the loss criterion
-                    loss = criterion(out, label.float())
+                    loss = criterion(out.to(device), label.to(device).float())
 
                     for valid_seq, valid_label in valid_loader:
+                
+                        valid_seq.to(device), valid_label.to(device)
+
                         with torch.no_grad():
-                            valid_out = model(valid_seq.float())
+                            valid_out = model(valid_seq.to(device).float())
                             valid_loss = criterion(
-                                valid_out, valid_label.float())
+                                valid_out.to(device), valid_label.to(device).float())
 
                     # store validation loss for plot
                     valid_hist[epoch] = valid_loss.item()
@@ -395,16 +412,18 @@ class NNForecast(object):
 
             train_hist = np.zeros(epochs+1)
 
-            for epoch in range(1, epochs + 1):
+            for epoch in tqdm(range(1, epochs + 1)):
 
                 start_time = time.time()
 
                 for input_seq, label in train_loader:
+                    
+                    input_seq.to(device), label.to(device)
 
                     # get the output of the NN
-                    out = model(input_seq.float())
+                    out = model(input_seq.to(device).float())
                     # calculate the gradient based on the loss criterion
-                    loss = criterion(out, label.float())
+                    loss = criterion(out.to(device), label.to(device).float())
 
                     # store the train loss for plot
                     train_hist[epoch] = loss.item()
@@ -439,7 +458,7 @@ class NNForecast(object):
     @staticmethod
     def test_predictions(model, train_x, scaler_object, test_data, evaluation_metrics):
         """
-        Used to make predictions for the test period and to evaluate how far the point predicitons
+        Used to make predictions for the test period and to evaluate how far the point predictions
         are from the the real values in the test set.
 
         Arguments
@@ -464,13 +483,20 @@ class NNForecast(object):
 
         with torch.no_grad():
             model.eval()
-
+            
+            # Automatically choosing the device for tensor calculations
+            device = ("cuda" if torch.cuda.is_available() else "cpu")
+            
             predictions = []
 
             first_eval_batch = train_x[-1, :, :]
             current_batch = first_eval_batch.reshape(
                 1, -1, first_eval_batch.shape[1])
-            current_batch = torch.from_numpy(current_batch)
+
+            if device == "cuda":
+                current_batch = torch.from_numpy(current_batch).cuda()
+            else:
+                current_batch = torch.from_numpy(current_batch)
 
             for i in range(len(test_data)):
 
@@ -483,7 +509,10 @@ class NNForecast(object):
 
                 # update the current batch to include the prediction
                 current_batch = torch.from_numpy(
-                    np.append(current_batch[:, 1:, :], [[[pred]]], axis=1))
+                    np.append(current_batch[:, 1:, :].cpu(), [[[pred]]], axis=1))
+                
+                if device == "cuda":
+                    current_batch = current_batch.cuda()
 
             predicted_values = scaler_object.inverse_transform(
                 np.expand_dims(predictions, axis=0)).flatten()
@@ -602,6 +631,7 @@ class NNForecast(object):
             of the confidence levels passed to the function. Optionally, it may return a csv file and 
             the plot of the forecast.
         """
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
 
         y_hat = []
 
@@ -614,7 +644,11 @@ class NNForecast(object):
                 last_data_batch = data_x[-1, :, :]
                 last_batch = last_data_batch.reshape(
                     1, -1, last_data_batch.shape[1])
-                last_batch = torch.from_numpy(last_batch)
+                
+                if device == "cuda":
+                    last_batch = torch.from_numpy(last_batch).cuda()
+                else:
+                    last_batch = torch.from_numpy(last_batch)
 
                 for i in range(n_periods):
                     model.train()
@@ -630,7 +664,10 @@ class NNForecast(object):
 
                     # update the batch to include the prediction
                     last_batch = torch.from_numpy(
-                        np.append(last_batch[:, 1:, :], [[[pred]]], axis=1))
+                        np.append(last_batch[:, 1:, :].cpu(), [[[pred]]], axis=1))
+                    
+                    if device == "cuda":
+                        last_batch = last_batch.cuda()
 
                 predicted_values = scaler_object.inverse_transform(
                     np.expand_dims(predictions, axis=0)).flatten()
@@ -695,8 +732,8 @@ class NNForecast(object):
             fc_df = pd.DataFrame(data=point_forecasts, columns=['Predictions'])
 
         for i, j in zip(upper_bound.keys(), lower_bound.keys()):
-            fc_df[f'Upper {int(float(i)*100)} % IC'] = upper_bound[i]
-            fc_df[f'Lower {int(float(j)*100)} % IC'] = lower_bound[j]
+            fc_df[f'Upper {int(float(i)*100)} % PI'] = upper_bound[i]
+            fc_df[f'Lower {int(float(j)*100)} % PI'] = lower_bound[j]
 
         if folder is not None:
             fc_df.to_csv(os.path.join(folder, f'{model_name} forecasts.csv'))

@@ -9,6 +9,7 @@ from metrics_class import PredictionMetrics
 from diffs_class import Diffs
 from utils_classes import TimeSeriesPlots
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from tqdm import tqdm
 
 
 class BoxJenkins(object):
@@ -127,7 +128,7 @@ class BoxJenkins(object):
                 print(f'FITTED MODELS', file=f)
                 print(f'-------------------------------------------------', file=f)
 
-            for parameter in nonseasonal_params:
+            for parameter in tqdm(nonseasonal_params):
                 try:
                     counter += 1
                     model = sm.tsa.statespace.SARIMAX(self.target_var,
@@ -214,7 +215,7 @@ class BoxJenkins(object):
                 print(
                     f'---------------------------------------------------------------------------------', file=f)
 
-            for parameter in nonseasonal_params:
+            for parameter in tqdm(nonseasonal_params):
                 for seasonal_parameter in seasonal_params:
                     try:
                         counter += 1

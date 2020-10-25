@@ -5,6 +5,7 @@ This module is responsible for fitting, estimating and choosing the best set of 
 """
 import os
 import config
+import torch
 from collections import OrderedDict
 from boxjenkins_class import BoxJenkins
 from utils_classes import FoldersUtils, DataUtils
@@ -51,7 +52,7 @@ def main():
         BoxJenkins.save_test_predictions(
             model_name=config.MODEL, predictions=test_predictions, folder=model_folder, train_data=train)
 
-    if config.MODEL == 'TradRNN' or config.MODEL == 'GRU' or config.MODEL == 'LSTM':
+    if config.MODEL == 'RNN' or config.MODEL == 'GRU' or config.MODEL == 'LSTM':
 
         # Pre-process time series
 
@@ -104,6 +105,7 @@ def main():
         NNForecast.save_test_predictions(
             model_name=config.MODEL, predictions=test_predictions, folder=model_folder, train_data=train)
 
+        torch.cuda.empty_cache() 
 
 if __name__ == '__main__':
     

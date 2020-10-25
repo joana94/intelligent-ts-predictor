@@ -25,7 +25,7 @@ class TradRNN(nn.Module):
         It may also be used as an indicator of model uncertainty.
     """
 
-    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
+    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1):
    
         super(TradRNN, self).__init__()
 
@@ -40,13 +40,6 @@ class TradRNN(nn.Module):
             self.dropout = dropout_p
         self.use_all_h = use_all_h
 
-        # Automatically choose device used for tensor calculations
-        if device == 'auto':
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        elif device == 'cpu' or device =='gpu':
-            self.device = device
-        else:
-            self.device = None
         # the input_size is the number of features per timestep
         # hidden_size is the number of nodes in each timestep
 
@@ -65,8 +58,11 @@ class TradRNN(nn.Module):
             self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
+        # Automatically choosing the device for tensor calculations
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
+
         # h0 -> hidden state shape [n_layers, batch_size, hidden_size]
-        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(self.device)
+        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(device)
         # Forward pass
         output, _ = self.rnn(x, h0)
 
@@ -102,7 +98,7 @@ class GRU(nn.Module):
         It may also be used as an indicator of model uncertainty.
     """
 
-    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
+    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1):
         super(GRU, self).__init__()
 
         self.hidden_size = hidden_size
@@ -116,13 +112,6 @@ class GRU(nn.Module):
             self.dropout = dropout_p
         self.use_all_h = use_all_h
 
-        # Automatically choose device used for tensor calculations
-        if device == 'auto':
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        elif device == 'cpu' or device =='gpu':
-            self.device = device
-        else:
-            self.device = None
         # the input_size is the number of features per timestep
         # hidden_size is the number of nodes in each timestep
 
@@ -141,8 +130,13 @@ class GRU(nn.Module):
             self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
+        
+        # Automatically choosing the device for tensor calculations
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
+
         # h0 -> hidden state shape [n_layers, batch_size, hidden_size]
-        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(self.device)
+        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(device)
+
         # Forward pass
         output, _ = self.gru(x, h0)
         if self.use_all_h:
@@ -176,7 +170,7 @@ class LSTM(nn.Module):
         It may also be used as an indicator of model uncertainty.
     """
 
-    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1, device='auto'):
+    def __init__(self, input_size, hidden_size, n_layers, output_size, seq_len, use_all_h=True, dropout_p = 0.1):
         super(LSTM, self).__init__()
 
         self.hidden_size = hidden_size
@@ -189,13 +183,7 @@ class LSTM(nn.Module):
         else:
             self.dropout = dropout_p
         self.use_all_h = use_all_h
-        # Automatically choose device used for tensor calculations
-        if device == 'auto':
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        elif device == 'cpu' or device =='gpu':
-            self.device = device
-        else:
-            self.device = None
+
         # the input_size is the number of features per timestep
         # hidden_size is the number of nodes in each timestep
 
@@ -214,13 +202,16 @@ class LSTM(nn.Module):
             self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
+        # Automatically choosing the device for tensor calculations
+        device = ("cuda" if torch.cuda.is_available() else "cpu")
+
         # h0 -> hidden state shape [n_layers, batch_size, hidden_size]
         # initialized with zeros for every sample or batch of samples
-        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(self.device)
+        h0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(device)
         
         # c0 -> cell state shape [n_layers, batch_size, hidden_size]
         # initialized with zeros for every sample or batch of samples
-        c0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(self.device)
+        c0 = torch.zeros(self.n_layers, x.size(0), self.hidden_size).to(device)
 
         # Forward pass
         output, _ = self.lstm(x, (h0, c0))

@@ -24,7 +24,7 @@ It comprises the following models:
 
 ## Example of output from the search process of an ARIMA model using the Intelligent TS Predictor system
 
-![boxjenkins](https://user-images.githubusercontent.com/23248450/96622483-e6064e00-1301-11eb-9feb-f766bc2e2be5.png)
+![box-jenkins](https://user-images.githubusercontent.com/23248450/97270979-e170f680-1827-11eb-9df9-7d281c341909.png)
 
  
 ## How to use
